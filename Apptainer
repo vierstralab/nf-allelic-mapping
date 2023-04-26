@@ -1,6 +1,5 @@
 Bootstrap: docker
 From: condaforge/mambaforge:latest 
-Stage: build
 
 %files 
 ./environment.yml /environment.yml
@@ -15,25 +14,14 @@ conda update conda
 mamba env create -n babachi --file /environment.yml && echo 'conda activate babachi' >> ~/.bashrc
 conda run --no-capture-output -n babachi /bin/bash -c "git clone https://github.com/vierstralab/WASP && cd WASP/snp2h5 && make"
 
-
-#######################
-# Final image
-
-Bootstrap: docker
-From: condaforge/mambaforge:latest 
-Stage: wasp-realigning
-
-%files from build
-/opt/conda /opt/conda
-/WASP/ /opt/WASP
-
-%post
-apt-get update && apt-get install -y bash
+mv /WASP /opt/WASP
 PATH=/opt/conda/envs/babachi/bin:$PATH
 
 %environment
 export PATH=/opt/conda/envs/babachi/bin:$PATH
+
 %runscript
 exec /bin/bash "$@"
+
 %startscript
 exec /bin/bash "$@"

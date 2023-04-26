@@ -14,5 +14,6 @@ dependencies:
   - pytables
   - samtools=1.15
   - bowtie2
-  - star
+  - star=2.4.2a
+  - gatk4
 prefix: /home/sabramov/miniconda3/envs/babachi
