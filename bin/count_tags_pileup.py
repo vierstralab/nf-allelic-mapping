@@ -13,7 +13,7 @@ logging.basicConfig(stream = sys.stderr, level='WARNING')
 
 def transform_af(value):
 	if value == '.' or value == 'None' or value is None:
-		return None
+		return pd.NA
 	else:
 		return float(value)
 
