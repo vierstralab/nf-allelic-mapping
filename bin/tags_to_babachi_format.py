@@ -18,7 +18,7 @@ def main(in_file):
             try:
                  n_failed_mapping / n_original_reads
             except:
-                print(split_line)
+                print(split_line, file=sys.stderr)
             print('\t'.join(map(str, [*split_line[:6], n_ref, n_alt, name, variant.aaf, variant.raf, n_failed_mapping / n_original_reads])))
 
 
