@@ -366,7 +366,7 @@ process reformat2babachi {
 		tuple val(ag_id), path(name)
 
 	script:
-	name = "${indiv_id}.snps.bed"
+	name = "${ag_id}.snps.bed"
 	"""
 	echo "#chr\tstart\tend\tID\tref\talt\tref_counts\talt_counts\tsample_id\tAAF\tRAF\tFMR" > ${name}
 	python3 $moduleDir/bin/tags_to_babachi_format.py ${bed_file} | sort-bed - >> ${name}
