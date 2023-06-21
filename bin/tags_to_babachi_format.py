@@ -15,11 +15,7 @@ def main(in_file):
             assert n_original_reads == n_alt + n_ref + n_failed_bias + n_failed_genotyping + n_failed_mapping
             if not variant.is_het:
                 continue
-            try:
-                 n_failed_mapping / n_original_reads
-            except:
-                print(split_line, file=sys.stderr)
-            print('\t'.join(map(str, [*split_line[:6], n_ref, n_alt, name, variant.aaf, variant.raf, n_failed_mapping / n_original_reads])))
+            print('\t'.join(map(str, [*split_line[:6], n_ref, n_alt, name, variant.aaf, variant.raf, n_failed_mapping / n_original_reads if n_original_reads > 0 else 0])))
 
 
 if __name__ == '__main__':
