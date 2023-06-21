@@ -47,8 +47,8 @@ wasp_path = '/opt/WASP'
 
 def set_key_for_group_tuple(ch) {
   ch.groupTuple()
-  .map{ it -> tuple(groupKey(it[0], it[1].size()), *it[1..(it.size()-1)]) }
-  .transpose()
+  	| map{ it -> tuple(groupKey(it[0], it[1].size()), *it[1..(it.size()-1)]) }
+  	| transpose()
 }
 
 def filter_grouped_channel(ch) {
@@ -334,13 +334,13 @@ process calc_initial_read_counts {
 process count_reads {
 	tag "${indiv_id}:${ag_number}"
 	container "${params.container}"
-	publishDir params.outdir + "/count_reads"
+	publishDir "${params.outdir}/count_reads"
 
 	input:
-		tuple val(ag_number), val(indiv_id), path(filtered_sites_file), path(filtered_sites_file_index), path(bam_passing_file), path(bam_passing_file_index), path(rmdup_counts), path(rmdup_counts_index)
+		tuple val(ag_number), path(filtered_sites_file), path(filtered_sites_file_index), path(bam_passing_file), path(bam_passing_file_index), path(rmdup_counts), path(rmdup_counts_index)
 
 	output:
-		tuple val(indiv_id), path(name), path("${name}.tbi")
+		tuple val(ag_number), path(name), path("${name}.tbi")
 
 	script:
 	name = "${ag_number}.bed.gz"
@@ -353,27 +353,23 @@ process count_reads {
 	"""
 }
 
-process merge_by_indiv {
-	publishDir "${params.outdir}/indiv_merged_files"
-	tag "${indiv_id}"
+process reformat2babachi {
+	publishDir "${params.outdir}/babachi_files"
+	tag "${ag_id}"
 	container "${params.container}"
 	scratch true
-	errorStrategy 'terminate'
 
 	input:
-		tuple val(indiv_id), path(bed_files), path(bed_file_index)
+		tuple val(ag_id), path(bed_file), path(bed_file_index)
 
 	output:
-		tuple val(indiv_id), path(name)
+		tuple val(ag_id), path(name)
 
 	script:
 	name = "${indiv_id}.snps.bed"
 	"""
-	for file in ${bed_files}; do
-		python3 $moduleDir/bin/tags_to_babachi_format.py \$file >> ${indiv_id}.snps
-	done
 	echo "#chr\tstart\tend\tID\tref\talt\tref_counts\talt_counts\tsample_id\tAAF\tRAF\tFMR" > ${name}
-	sort -k 1,1 -k2,2n ${indiv_id}.snps >> ${name}
+	python3 $moduleDir/bin/tags_to_babachi_format.py ${bed_file} | sort-bed - >> ${name}
 	"""
 }
 
@@ -388,7 +384,7 @@ process add_snp_files_to_meta {
 	script:
 	name = "meta+sample_ids.tsv"
 	"""
-	python3 $moduleDir/bin/add_meta.py ${params.samples_file} ${name} ${launchDir}/${params.outdir}/indiv_merged_files
+	python3 $moduleDir/bin/add_meta.py ${params.samples_file} ${name} ${launchDir}/${params.outdir}/babachi_files
 	"""
 }
 
@@ -457,8 +453,7 @@ workflow waspRealigning {
 			| join(merged_out_bam)
 			| join(initial_read_counts)
 			| count_reads
-			| groupTuple()
-			| merge_by_indiv
+			| reformat2babachi
 		
 		snps_sites
 			| map(it -> it[1])
@@ -480,6 +475,14 @@ workflow {
 	indivs_count = samples_aggregations.map(it -> it[0]).unique().count().view {
 		it -> """There are ${it} unique INDIV_IDs in the ${params.samples_file}. Please, check that they correspond to IDs in ${params.genotype_file}"""
 	}
-	waspRealigning(set_key_for_group_tuple(samples_aggregations))
+	samples_aggregations 
+		| set_key_for_group_tuple
+		| waspRealigning
 	add_snp_files_to_meta() 
+}
+
+workflow tmp {
+	Channel.fromPath("/net/seq/data2/projects/sabramov/ENCODE4/dnase-wasp/output/count_reads/*.bed.gz")
+		| map(it -> tuple(file(it).simpleName, file(it), file(it + '.tbi')))
+		| reformat2babachi
 }
