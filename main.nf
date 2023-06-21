@@ -357,7 +357,6 @@ process reformat2babachi {
 	publishDir "${params.outdir}/babachi_files"
 	tag "${ag_id}"
 	container "${params.container}"
-	scratch true
 
 	input:
 		tuple val(ag_id), path(bed_file), path(bed_file_index)
@@ -369,7 +368,8 @@ process reformat2babachi {
 	name = "${ag_id}.snps.bed"
 	"""
 	echo "#chr\tstart\tend\tID\tref\talt\tref_counts\talt_counts\tsample_id\tAAF\tRAF\tFMR" > ${name}
-	python3 $moduleDir/bin/tags_to_babachi_format.py ${bed_file} | sort-bed - >> ${name}
+	python3 $moduleDir/bin/tags_to_babachi_format.py ${bed_file} \
+		| sort-bed - >> ${name}
 	"""
 }
 
