@@ -482,7 +482,7 @@ workflow {
 }
 
 workflow tmp {
-	Channel.fromPath("/net/seq/data2/projects/sabramov/ENCODE4/dnase-wasp/output/count_reads/*.bed.gz")
+	Channel.fromPath("$launchDir/output/count_reads/*.bed.gz")
 		| map(it -> tuple(file(it).simpleName, file(it), file(it + '.tbi')))
 		| reformat2babachi
 }
