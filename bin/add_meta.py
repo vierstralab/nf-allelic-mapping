@@ -10,6 +10,7 @@ def get_snps_file_name(value, prefix):
 
 def main(old_meta, output, file_prefix):
     df = pd.read_table(old_meta)
+    df = df[~pd.isna(df['indiv_id'])]
     df['snps_file'] = df['ag_id'].apply(lambda x: get_snps_file_name(x, file_prefix))
     df.to_csv(output, sep='\t', index=False)
 
