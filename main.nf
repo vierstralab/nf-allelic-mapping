@@ -384,7 +384,10 @@ process add_snp_files_to_meta {
 	script:
 	name = "meta+sample_ids.tsv"
 	"""
-	python3 $moduleDir/bin/add_meta.py ${params.samples_file} ${name} ${launchDir}/${params.outdir}/babachi_files
+	python3 $moduleDir/bin/add_meta.py \
+		${params.samples_file} \
+		${name} \
+		${launchDir}/${params.outdir}/babachi_files
 	"""
 }
 
