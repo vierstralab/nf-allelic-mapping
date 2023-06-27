@@ -489,6 +489,7 @@ workflow {
 }
 
 workflow tmp {
+	add_snp_files_to_meta()
 	Channel.fromPath("$launchDir/output/count_reads/*.bed.gz")
 		| map(it -> tuple(file(it).simpleName, file(it), file(it + '.tbi')))
 		| reformat2babachi
