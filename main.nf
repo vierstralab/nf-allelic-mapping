@@ -449,8 +449,6 @@ workflow waspRealigning {
 			| join(initial_read_counts) // ag_id, remapped_bam, bam_index, variants, variants_index, initial_counts, counts_index
 			| count_reads // ag_id, summary_file, summary_file_index
 			| reformat2babachi // ag_id, babachi_formatted_summary
-		
-		add_snp_files_to_meta()
 	emit:
 		out
 }
@@ -471,8 +469,7 @@ workflow {
 			it -> """There are ${it} unique INDIV_IDs in the ${params.samples_file}. Please, check that they correspond to IDs in ${params.genotype_file}"""
 		}
 
-	samples_aggregations 
-		| waspRealigning
+	out = samples_aggregations | waspRealigning
 	add_snp_files_to_meta() 
 }
 
