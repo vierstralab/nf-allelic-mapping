@@ -45,18 +45,6 @@ process align_reads {
 // DO not edit below
 wasp_path = '/opt/WASP'
 
-def set_key_for_group_tuple(ch) {
-  ch.groupTuple()
-  	| map{ it -> tuple(groupKey(it[0], it[1].size()), *it[1..(it.size()-1)]) }
-  	| transpose()
-}
-
-def filter_grouped_channel(ch) {
-	return ch.map(it -> tuple(it[0],
-		it[1].findAll { f -> f[1] }.collect { element -> return element[0] })
-		)
-}
-
 def get_container(file_name) {
   parent = file(file_name).parent
   container = "--bind ${parent}"
@@ -71,19 +59,19 @@ def get_container(file_name) {
 
 
 process filter_variants {
-	tag "${indiv_id}:${ag_id}"
+	tag "${indiv_id}"
 	container "${params.container}"
 	containerOptions "${get_container(params.genotype_file)}" 
 	publishDir "${params.outdir}/target_variants"
 
 	input:
-		tuple val(ag_id), val(indiv_id)
+		val indiv_id
 
 	output:
-		tuple val(ag_id), path(outname), path("${outname}.tbi")
+		tuple val(indiv_id), path(outname), path("${outname}.tbi")
 
 	script:
-	outname = "${indiv_id}:${ag_id}.bed.gz"
+	outname = "${indiv_id}.bed.gz"
 	"""
 	bcftools query \
 		-s ${indiv_id} \
@@ -183,8 +171,7 @@ process extract_to_remap_reads {
 	scratch true
 
 	input:
-		tuple val(ag_number), val(indiv_id), val(r_tag), path(bam_file), path(bam_file_index), env(n_counts)
-		path h5_tables
+		tuple val(ag_number), val(r_tag), path(bam_file), path(bam_file_index), env(n_counts), path(h5_tables)
 
 	output:
 		tuple val(ag_number), val(r_tag), path(out_bam_file), path("${out_bam_file}.bai"), emit: bamfile
@@ -279,17 +266,18 @@ process merge_bam_files {
 	container "${params.container}"
 	scratch true
 	tag "${ag_number}"
-	publishDir "${params.outdir}/filtered_bam"
+	publishDir "${params.outdir}/filtered_bam", pattern: "${ag_number}.remapped.merged.bam"
 
 	input:
-		tuple val(ag_number), path(bam_files)
+		tuple val(prefix), val(ag_number), path(bam_files)
 
 	output:
-		tuple val(ag_number), path(name), path("${name}.bai")
+		tuple val(prefix), val(ag_number), path(name), path("${name}.bai")
 
 	script:
-	name = "${ag_number}.merged.bam"
-	if (bam_files.toString().tokenize().size() >= 2)
+	name = "${ag_number}.${prefix}.merged.bam"
+	non_empty_bam_files = bam_files.toString().tokenize().filter(it -> it.name != 'empty.bam')
+	if (.size() >= 2)
 		"""
 		samtools merge -f reads.rmdup.original.bam \
 			${bam_files}
@@ -332,12 +320,12 @@ process calc_initial_read_counts {
 }
 
 process count_reads {
-	tag "${indiv_id}:${ag_number}"
+	tag "${ag_number}"
 	container "${params.container}"
 	publishDir "${params.outdir}/count_reads"
 
 	input:
-		tuple val(ag_number), path(filtered_sites_file), path(filtered_sites_file_index), path(bam_passing_file), path(bam_passing_file_index), path(rmdup_counts), path(rmdup_counts_index)
+		tuple val(ag_number), path(bam_passing_file), path(bam_passing_file_index), path(filtered_sites_file), path(filtered_sites_file_index), path(rmdup_counts), path(rmdup_counts_index)
 
 	output:
 		tuple val(ag_number), path(name), path("${name}.tbi")
@@ -387,81 +375,82 @@ process add_snp_files_to_meta {
 	python3 $moduleDir/bin/add_meta.py \
 		${params.samples_file} \
 		${name} \
-		${launchDir}/${params.outdir}/babachi_files
+		${params.outdir}/babachi_files
 	"""
-}
-
-
-workflow calcInitialReadCounts {
-	take:
-		data
-		snps_sites
-	main:
-		out = merge_bam_files(data) | join(snps_sites) | calc_initial_read_counts
-	emit:
-		out
 }
 
 workflow waspRealigning {
 	take:
-		samples_aggregations
+		samples_aggregations // ag_id, indiv_id, bam, bam_index
 	main:
-		h5_tables = generate_h5_tables().collect()
-
-		sagr = samples_aggregations.map(it -> tuple(it[1], it[0], it[2], it[3]))
-		
-		indiv_ag_id_map = sagr.map(it -> tuple(it[0], it[1]))
-		
-		snps_sites = filter_variants(indiv_ag_id_map)
-		
-		samples = sagr.join(snps_sites, by: 0)
 		r_tags = Channel.of('pe', 'se')
-		split_rs = sagr
-			| combine(r_tags)
-			| split_reads
+
+		h5_tables = generate_h5_tables().collect() // h5 files
+		
+		snps_sites = samples_aggregations
+			| map(it -> it[1]) // indiv_id
+			| filter_variants // indiv_id, variants, variants_index
+
+		snps_sites
+			| map(it -> it[1]) 
+			| collect(sort: true) // varaints files
+			| merge_snv_files
+		
+		snp_sites_by_ag_id = samples_aggregations
+			| map(it -> tuple(it[0], it[1])) // ag_id, indiv_id
+			| combine(snps_sites, by: 1) // ag_id, indiv_id, variants, variants_index
+			| map(it -> it[0], it[2], it[3]) // ag_id, variants, variants_index
+		
+		split_rs = samples_aggregations
+			| map(it -> tuple(it[0], it[2], it[3])) // ag_id, bam, bam_index
+			| combine(r_tags) // ag_id, bam, bam_index, r_tag
+			| split_reads // ag_id, r_tag, r_tag_bam, bam_index, read_count
 			| branch {
-				files: it[5].toInteger() > 0
+				files: it[4].toInteger() > 0
         		nodata: true
 			}
-		//tuple val(ag_number), val(indiv_id), val(r_tag), path(name), path("${name}.bai"), env(n_counts)
-		// tuple val(ag_number), path(name)
+		
+		to_remap_reads_and_initial_bam = split_rs.files // ag_id, r_tag, r_tag_bam, bam_index, read_count
+			| combine(h5_table) // ag_id, r_tag, r_tag_bam, bam_index, read_count, h5_files
+			| extract_to_remap_reads // bamfile: ag_id, r_tag, r_tag_bam_dedup, bam_inex
+									 // fastq: ag_id, r_tag, fastq1, fastq2
+
+		dedup_bam = to_remap_reads_and_initial_bam.bamfile // ag_id, r_tag, r_tag_bam_dedup, bam_inex
+
+		filtered_bam = to_remap_reads_and_initial_bam.fastq // ag_id, r_tag, fastq1, fastq2
+			| align_reads // ag_id, r_tag, realigned_bam
+			| join(dedup_bam, by: [0, 1]) // ag_id, r_tag, realigned_bam, r_tag_bam_dedup, bam_index
+			| wasp_filter_reads // ag_id, filtered_bam
+			| map(it -> tuple('remapped', *it))
+
 		nodata = split_rs.nodata
-			| map(it -> tuple(it[0], tuple(it[3], false)))
+			| map(it -> tuple(it[0], file('empty.bam'))) // ag_id, 'empty.bam'
 
-		to_remap_reads_and_initial_bam = extract_to_remap_reads(split_rs.files, h5_tables)
-
-		dedup_bam = to_remap_reads_and_initial_bam.bamfile
-
-		filtered_bam = to_remap_reads_and_initial_bam.fastq
-			| align_reads
-			| join(dedup_bam, by: [0, 1])
-			| wasp_filter_reads
-			| map(it -> tuple(it[0], tuple(it[1], true)))
-		
 		merged_out_bam = nodata	
+			| map(it -> tuple('remapped', *it)) // type, ag_id, bam, bam_index
 			| mix(filtered_bam)
-			| groupTuple(size: 2)
-			| filter_grouped_channel
-			| merge_bam_files
+			| mix(nodata.map(it -> tuple('initial', *it)))
+			| mix(dedup_bam.map(it -> tuple('initial', *it)))
+			| groupTuple(size: 2, by: [0, 1])
+			| merge_bam_files // type, ag_id, bam, bam_index
+			| branch {
+				initial: it[0] == 'initial'
+        		remapped: true
+			}
+			
+		initial_read_counts = merged_out_bam.initial // type, ag_id, initial_bam, bam_index
+			| map(it -> tuple(*it[1..(it.size()-1)])) //  ag_id, initial_bam, bam_index
+			| join(snp_sites_by_ag_id) // ag_id, initial_bam, bam_index, variants, variants_index
+			| calc_initial_read_counts // ag_id, initial_counts, counts_index
 
-		d = nodata
-			| mix(dedup_bam.map(it -> tuple(it[0], tuple(it[2], true))))
-			| groupTuple(size: 2)
-			| filter_grouped_channel
-		initial_read_counts = calcInitialReadCounts(d, snps_sites)
-
-
-		out = indiv_ag_id_map 
-			| join(snps_sites)
-			| join(merged_out_bam)
-			| join(initial_read_counts)
-			| count_reads
-			| reformat2babachi
+		out = merged_out_bam.remapped // type, ag_id, remapped_bam, bam_index
+			| map(it -> tuple(*it[1..(it.size()-1)])) //  ag_id, remapped_bam, bam_index
+			| join(snp_sites_by_ag_id) // ag_id, remapped_bam, bam_index, variants, variants_index
+			| join(initial_read_counts) // ag_id, remapped_bam, bam_index, variants, variants_index, initial_counts, counts_index
+			| count_reads // ag_id, summary_file, summary_file_index
+			| reformat2babachi // ag_id, babachi_formatted_summary
 		
-		snps_sites
-			| map(it -> it[1])
-			| collect(sort: true)
-			| merge_snv_files
+		add_snp_files_to_meta()
 	emit:
 		out
 }
@@ -470,7 +459,7 @@ workflow waspRealigning {
 workflow {
 	samples_aggregations = Channel.fromPath(params.samples_file)
 		| splitCsv(header:true, sep:'\t')
-		| map(row -> tuple(row.indiv_id, row.ag_id, file(row.bam_file), file("${row.bam_file}.crai")))
+		| map(row -> tuple(row.ag_id, row.indiv_id, file(row.bam_file), file("${row.bam_file}.crai")))
 		| filter { !it[0].isEmpty() }
 		| unique { it[1] }
 
@@ -483,7 +472,6 @@ workflow {
 		}
 
 	samples_aggregations 
-		| set_key_for_group_tuple
 		| waspRealigning
 	add_snp_files_to_meta() 
 }
