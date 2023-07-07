@@ -337,7 +337,7 @@ process count_reads {
 	publishDir "${params.outdir}/count_reads"
 
 	input:
-		tuple val(ag_number), path(filtered_sites_file), path(filtered_sites_file_index), path(bam_passing_file), path(bam_passing_file_index), path(rmdup_counts), path(rmdup_counts_index)
+		tuple val(ag_number), val(indiv_id), path(filtered_sites_file), path(filtered_sites_file_index), path(bam_passing_file), path(bam_passing_file_index), path(rmdup_counts), path(rmdup_counts_index)
 
 	output:
 		tuple val(ag_number), path(name), path("${name}.tbi")
