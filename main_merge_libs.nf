@@ -1,6 +1,11 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl = 2
 
+/* 
+   Variation of the pipeline that performs pre-merge of aggregations by indiv_id and cell_type.
+   Combination of indiv_id and cell_type is used in place of the aggregation id during waspRealigning workflow.
+*/
+
 include  { calcInitialReadCounts; waspRealigning; filter_grouped_channel; set_key_for_group_tuple; add_snp_files_to_meta } from './main'
 process merge_by_indiv_and_cell_type {
         tag "${indiv_id}:${cell_type}"
