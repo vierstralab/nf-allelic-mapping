@@ -436,13 +436,8 @@ workflow waspRealigning {
 			| align_reads
 			| join(dedup_bam, by: [0, 1])
 			| wasp_filter_reads
-			| map(it -> tuple(it[0], tuple(it[1], true)))
 		
-		merged_out_bam = nodata	
-			| mix(filtered_bam)
-			| groupTuple(size: 2)
-			| filter_grouped_channel
-			| merge_bam_files
+		merged_out_bam = merge_bam_files(filtered_bam)
 
 		d = nodata
 			| mix(dedup_bam.map(it -> tuple(it[0], tuple(it[2], true))))
