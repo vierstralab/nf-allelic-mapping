@@ -144,7 +144,7 @@ process generate_h5_tables {
 }
 
 process split_reads {
-	tag "${indiv_id}:${ag_number}"
+	tag "${ag_number}"
 	container "${params.container}"
 	containerOptions "${get_container(params.genome_fasta_file)}"
 
