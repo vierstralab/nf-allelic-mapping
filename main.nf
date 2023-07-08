@@ -432,9 +432,7 @@ workflow waspRealigning {
 
 		merged_out_bam = dedup_bam
 			| map(it -> tuple('initial', it[0], it[2]))
-			| mix(filtered_bam) // type, ag_id, bam
-			| mix(nodata.initial) // type, ag_id, bam
-			| mix(nodata.remapped) // type, ag_id, bam
+			| mix(filtered_bam, nodata.initial, nodata.remapped) // type, ag_id, bam
 			| groupTuple(size: 2, by: [0, 1])
 			| merge_bam_files // type, ag_id, bam, bam_index
 			| branch {
