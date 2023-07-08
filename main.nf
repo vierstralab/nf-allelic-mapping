@@ -411,7 +411,7 @@ workflow waspRealigning {
 			}
 		
 		to_remap_reads_and_initial_bam = split_rs.files // ag_id, r_tag, r_tag_bam, bam_index, read_count
-			| combine(h5_table) // ag_id, r_tag, r_tag_bam, bam_index, read_count, h5_files
+			| combine(h5_tables) // ag_id, r_tag, r_tag_bam, bam_index, read_count, h5_files
 			| extract_to_remap_reads // bamfile: ag_id, r_tag, r_tag_bam_dedup, bam_inex
 									 // fastq: ag_id, r_tag, fastq1, fastq2
 
