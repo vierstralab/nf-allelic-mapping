@@ -149,10 +149,10 @@ process split_reads {
 	containerOptions "${get_container(params.genome_fasta_file)}"
 
 	input:
-		tuple val(ag_number), val(indiv_id), path(bam_file), path(bam_index_file), val(r_tag)
+		tuple val(ag_number), path(bam_file), path(bam_index_file), val(r_tag)
 
 	output:
-		tuple val(ag_number), val(indiv_id), val(r_tag), path(name), path("${name}.bai"), env(n_counts)
+		tuple val(ag_number), val(r_tag), path(name), path("${name}.bai"), env(n_counts)
 
 	script:
 	name = "${ag_number}.${r_tag}.bam"
