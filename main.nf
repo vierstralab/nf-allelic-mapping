@@ -126,15 +126,15 @@ process generate_h5_tables {
 
 	script:
 	"""
-	chroms=("\$(tabix -l ${params.genotype_file})")
-	for chrom in \${chroms[@]}; do
+	for chrom in `tabix -l ${params.genotype_file}`; do
 		bcftools view -r \${chrom} -Oz ${params.genotype_file} > \${chrom}.vcf.gz
 		bcftools index \${chrom}.vcf.gz
 	done
 
 	gzip -c ${params.chrom_sizes} > chrom_sizes.txt.gz
 
-	${wasp_path}/snp2h5/snp2h5 --chrom chrom_sizes.txt.gz \
+	${wasp_path}/snp2h5/snp2h5 \
+		--chrom chrom_sizes.txt.gz \
 		--format vcf \
 		--haplotype haplotypes.h5 \
 		--snp_index snp_index.h5 \
