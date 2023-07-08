@@ -276,8 +276,8 @@ process merge_bam_files {
 
 	script:
 	name = "${ag_number}.${prefix}.merged.bam"
-	non_empty_bam_files = bam_files.toString().tokenize().filter(it -> it.name != 'empty.bam')
-	if (.size() >= 2)
+	non_empty_bam_files = bam_files.filter(it -> it.name != 'empty.bam').toString().tokenize()
+	if (non_empty_bam_files.size() >= 2)
 		"""
 		samtools merge -f reads.rmdup.original.bam \
 			${bam_files}
