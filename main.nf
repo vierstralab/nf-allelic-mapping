@@ -421,16 +421,20 @@ workflow waspRealigning {
 			| align_reads // ag_id, r_tag, realigned_bam
 			| join(dedup_bam, by: [0, 1]) // ag_id, r_tag, realigned_bam, r_tag_bam_dedup, bam_index
 			| wasp_filter_reads // ag_id, filtered_bam
-			| map(it -> tuple('remapped', *it))
+			| map(it -> tuple('remapped', *it)) // ag_id, filtered_bam
 
 		nodata = split_rs.nodata
 			| map(it -> tuple(it[0], file('empty.bam'))) // ag_id, 'empty.bam'
+			| multiMap { it ->
+				remapped: tuple('remapped', *it)
+				initial: tuple('initial', *it)
+			}
 
-		merged_out_bam = nodata	
-			| map(it -> tuple('remapped', *it)) // type, ag_id, bam, bam_index
-			| mix(filtered_bam)
-			| mix(nodata.map(it -> tuple('initial', *it)))
-			| mix(dedup_bam.map(it -> tuple('initial', *it)))
+		merged_out_bam = dedup_bam
+			| map(it -> tuple('initial', it[0], it[2]))
+			| mix(filtered_bam) // type, ag_id, bam
+			| mix(nodata.initial) // type, ag_id, bam
+			| mix(nodata.remapped) // type, ag_id, bam
 			| groupTuple(size: 2, by: [0, 1])
 			| merge_bam_files // type, ag_id, bam, bam_index
 			| branch {
