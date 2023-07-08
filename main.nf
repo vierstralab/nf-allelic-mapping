@@ -421,14 +421,14 @@ workflow waspRealigning {
 			| align_reads // ag_id, r_tag, realigned_bam
 			| join(dedup_bam, by: [0, 1]) // ag_id, r_tag, realigned_bam, r_tag_bam_dedup, bam_index
 			| wasp_filter_reads // ag_id, filtered_bam
-			| map(it -> tuple('remapped', *it)) // ag_id, filtered_bam
+			| map(it -> tuple('remapped', *it)) // type, ag_id, filtered_bam
 
 		nodata = split_rs.nodata
 			| map(it -> tuple(it[0], file('empty.bam'))) // ag_id, 'empty.bam'
 			| multiMap { it ->
 				remapped: tuple('remapped', *it)
 				initial: tuple('initial', *it)
-			}
+			} // type, ag_id, filtered_bam
 
 		merged_out_bam = dedup_bam
 			| map(it -> tuple('initial', it[0], it[2]))
