@@ -117,7 +117,6 @@ process merge_snv_files {
 
 process generate_h5_tables {
 	scratch true
-	publishDir "${params.outdir}/h5"
 	container "${params.container}"
 	containerOptions "${get_container(params.genotype_file)} ${get_container(params.chrom_sizes)}"
 
@@ -279,6 +278,7 @@ process merge_bam_files {
 
 	script:
 	name = "${ag_number}.${prefix}.merged.bam"
+	// There is probably a cleaner way, but this will do for now
 	non_empty_bam_files = bam_files.stream().filter(
 			s -> s.name != 'empty.bam'
 		).toArray()
@@ -328,7 +328,7 @@ process count_initial_reads {
 process count_remapped_reads {
 	tag "${ag_number}"
 	container "${params.container}"
-	publishDir "${params.outdir}/count_reads"
+	publishDir "${params.outdir}/remapped_files"
 
 	input:
 		tuple val(ag_number), path(bam_passing_file), path(bam_passing_file_index), path(filtered_sites_file), path(filtered_sites_file_index), path(rmdup_counts), path(rmdup_counts_index)
@@ -391,8 +391,7 @@ workflow waspRealigning {
 	main:
 		r_tags = Channel.of('pe', 'se')
 
-		h5_tables = Channel.fromPath('/net/seq/data2/projects/sabramov/ENCODE4/dnase-wasp/test/work/22/c0afa732d77f92ef3c5401e33b9512/*.h5').collect(sort: true) // h5 files
-		// h5_tables = generate_h5_tables().collect(sort: true) // h5 files
+		h5_tables = generate_h5_tables().collect(sort: true) // h5 files
 		snps_sites = samples_aggregations
 			| map(it -> it[1]) // indiv_id
 			| filter_variants // indiv_id, variants, variants_index
@@ -479,9 +478,9 @@ workflow {
 	out = samples_aggregations | waspRealigning
 }
 
-workflow tmp {
+workflow reformat {
 	add_snp_files_to_meta()
-	Channel.fromPath("$launchDir/output/count_reads/*.bed.gz")
-		| map(it -> tuple(file(it).simpleName, file(it), file(it + '.tbi')))
+	Channel.fromPath("$launchDir/output/remapped_files/*.bed.gz")
+		| map(it -> tuple(it.simpleName, it, file("${it.name}.tbi")))
 		| reformat2babachi
 }
