@@ -279,9 +279,9 @@ process merge_bam_files {
 
 	script:
 	name = "${ag_number}.${prefix}.merged.bam"
-	System.out.println("List Before: " + bam_files);
+	System.err.println("List Before: " + bam_files);
 	non_empty_bam_files = bam_files.removeIf(s -> s.name == 'empty.bam')
-	System.out.println("List Before: " + non_empty_bam_files);
+	System.err.println("List After: " + non_empty_bam_files);
 	if (non_empty_bam_files.size() >= 2)
 		"""
 		samtools merge -f reads.rmdup.original.bam \
