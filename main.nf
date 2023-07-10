@@ -172,7 +172,8 @@ process extract_to_remap_reads {
 	scratch true
 
 	input:
-		tuple val(ag_number), val(indiv_id), val(r_tag), path(bam_file), path(bam_file_index), env(n_counts), path(h5_tables)
+		tuple val(ag_number), val(indiv_id), val(r_tag), path(bam_file), path(bam_file_index), env(n_counts)
+		path h5_tables
 
 	output:
 		tuple val(ag_number), val(r_tag), path(out_bam_file), path("${out_bam_file}.bai"), emit: bamfile
