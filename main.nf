@@ -267,7 +267,7 @@ process wasp_filter_reads {
 process merge_bam_files {
 	container "${params.container}"
 	scratch true
-	tag "${ag_number}"
+	tag "${prefix}:${ag_number}"
 	publishDir "${params.outdir}/filtered_bam", pattern: "${ag_number}.remapped.merged.bam"
 
 	input:
