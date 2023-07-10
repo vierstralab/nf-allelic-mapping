@@ -403,7 +403,7 @@ workflow waspRealigning {
 		
 		snp_sites_by_ag_id = samples_aggregations
 			| map(it -> tuple(it[1], it[0])) // indiv_id, ag_id
-			| combine(snps_sites) // indiv_id, ag_id, variants, variants_index
+			| combine(snps_sites, by: 0) // indiv_id, ag_id, variants, variants_index
 			| map(it -> tuple(*it[1..(it.size()-1)])) // ag_id, variants, variants_index
 			| view
 		
