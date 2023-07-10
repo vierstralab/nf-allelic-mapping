@@ -480,7 +480,8 @@ workflow {
 
 workflow reformat {
 	add_snp_files_to_meta()
-	Channel.fromPath("$launchDir/output/remapped_files/*.bed.gz")
+	params.remapped_files_dir = "$launchDir/output/remapped_files/"
+	Channel.fromPath("${params.remapped_files_dir}/*.bed.gz")
 		| map(it -> tuple(it.simpleName, it, file("${it.name}.tbi")))
 		| reformat2babachi
 }
