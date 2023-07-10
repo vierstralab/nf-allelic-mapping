@@ -389,7 +389,7 @@ workflow waspRealigning {
 	take:
 		samples_aggregations // ag_id, indiv_id, bam, bam_index
 	main:
-		r_tags = Channel.of('pe', 'se')
+		r_tags = Channel.of('pe', 'se') // flag that indicates paired-end/single-end reads
 
 		h5_tables = generate_h5_tables().collect(sort: true) // h5 files
 		snps_sites = samples_aggregations
