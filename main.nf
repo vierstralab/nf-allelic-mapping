@@ -404,6 +404,7 @@ workflow waspRealigning {
 		snp_sites_by_ag_id = samples_aggregations
 			| map(it -> tuple(it[0], it[1])) // ag_id, indiv_id
 			| combine(snps_sites, by: 1) // ag_id, indiv_id, variants, variants_index
+			| view
 			| map(it -> tuple(it[0], it[2], it[3])) // ag_id, variants, variants_index
 		
 		split_rs = samples_aggregations
