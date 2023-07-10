@@ -433,6 +433,10 @@ workflow waspRealigning {
 				initial: tuple('initial', *it)
 			} // type, ag_id, filtered_bam
 
+
+		def criteria = branchCriteria {
+
+		}
 		merged_out_bam = dedup_bam
 			| map(it -> tuple('initial', it[0], it[2]))
 			| mix(filtered_bam, nodata.initial, nodata.remapped) // type, ag_id, bam
@@ -440,16 +444,16 @@ workflow waspRealigning {
 			| merge_bam_files // type, ag_id, bam, bam_index
 			| branch {
 				initial: it[0] == 'initial'
-        		remapped: true
-			}
+					return tuple(*it[1..(it.size()-1)])
+				remapped: it[0] == 'remapped'
+					return tuple(*it[1..(it.size()-1)])
+			} // ag_id, bam, bam_index
 
-		initial_read_counts = merged_out_bam.initial // type, ag_id, initial_bam, bam_index
-			| map(it -> tuple(*it[1..(it.size()-1)])) //  ag_id, initial_bam, bam_index
+		initial_read_counts = merged_out_bam.initial // ag_id, initial_bam, bam_index
 			| join(snp_sites_by_ag_id) // ag_id, initial_bam, bam_index, variants, variants_index
 			| count_initial_reads // ag_id, initial_counts, counts_index
 
-		out = merged_out_bam.remapped // type, ag_id, remapped_bam, bam_index
-			| map(it -> tuple(*it[1..(it.size()-1)])) //  ag_id, remapped_bam, bam_index
+		out = merged_out_bam.remapped // ag_id, remapped_bam, bam_index
 			| join(snp_sites_by_ag_id) // ag_id, remapped_bam, bam_index, variants, variants_index
 			| join(initial_read_counts) // ag_id, remapped_bam, bam_index, variants, variants_index, initial_counts, counts_index
 			| count_remapped_reads // ag_id, summary_file, summary_file_index
