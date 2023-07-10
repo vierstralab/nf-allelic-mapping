@@ -444,6 +444,7 @@ workflow waspRealigning {
 			}
 		merged_out_bam.initial | view
 		merged_out_bam.remapped | view
+		snp_sites_by_ag_id | view
 		initial_read_counts = merged_out_bam.initial // type, ag_id, initial_bam, bam_index
 			| map(it -> tuple(*it[1..(it.size()-1)])) //  ag_id, initial_bam, bam_index
 			| join(snp_sites_by_ag_id) // ag_id, initial_bam, bam_index, variants, variants_index
