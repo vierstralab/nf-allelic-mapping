@@ -407,7 +407,7 @@ workflow waspRealigning {
 			| combine(r_tags) // ag_id, indiv_id, bam, bam_index, r_tag
 			| split_reads // ag_id, indiv_id, r_tag, r_tag_bam, bam_index, read_count
 			| branch {
-				files: it[4].toInteger() > 0
+				files: it[5].toInteger() > 0
         		nodata: true
 			}
 		
