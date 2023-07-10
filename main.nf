@@ -386,7 +386,7 @@ workflow waspRealigning {
 	main:
 		r_tags = Channel.of('pe', 'se')
 
-		h5_tables = generate_h5_tables().collect(sort: true) // h5 files
+		h5_tables = Channel.fromPath('/net/seq/data2/projects/sabramov/ENCODE4/dnase-wasp/test/work/22/c0afa732d77f92ef3c5401e33b9512/*.h5').collect(sort: true) // h5 files
 		
 		snps_sites = samples_aggregations
 			| map(it -> it[1]) // indiv_id
