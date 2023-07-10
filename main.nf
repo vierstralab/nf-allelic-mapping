@@ -401,11 +401,11 @@ workflow waspRealigning {
 			| collect(sort: true) // varaints files
 			| merge_snv_files
 		
-		snps_sites | view
 		snp_sites_by_ag_id = samples_aggregations
 			| map(it -> tuple(it[1], it[0])) // indiv_id, ag_id
 			| combine(snps_sites) // indiv_id, ag_id, variants, variants_index
 			| map(it -> tuple(*it[1..(it.size()-1)])) // ag_id, variants, variants_index
+			| view
 		
 		split_rs = samples_aggregations
 			| combine(r_tags) // ag_id, indiv_id, bam, bam_index, r_tag
