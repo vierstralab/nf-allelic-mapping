@@ -91,7 +91,7 @@ process filter_variants {
 	"""
 }
 
-process merge_snv_files {
+process collect_snv_files {
 	scratch true
 	container "${params.container}"
 	publishDir "${params.outdir}"
@@ -331,7 +331,7 @@ process count_remapped_reads {
 	publishDir "${params.outdir}/remapped_files"
 
 	input:
-		tuple val(ag_number), path(bam_passing_file), path(bam_passing_file_index), path(filtered_sites_file), path(filtered_sites_file_index), path(rmdup_counts), path(rmdup_counts_index)
+		tuple val(ag_number), path(rmdup_counts), path(rmdup_counts_index), path(bam_passing_file), path(bam_passing_file_index), path(filtered_sites_file), path(filtered_sites_file_index)
 
 	output:
 		tuple val(ag_number), path(name), path("${name}.tbi")
@@ -399,7 +399,7 @@ workflow waspRealigning {
 		snps_sites
 			| map(it -> it[1]) 
 			| collect(sort: true) // varaints files
-			| merge_snv_files
+			| collect_snv_files
 		
 		snp_sites_by_ag_id = samples_aggregations
 			| map(it -> tuple(it[1], it[0])) // indiv_id, ag_id
@@ -433,10 +433,6 @@ workflow waspRealigning {
 				initial: tuple('initial', *it)
 			} // type, ag_id, filtered_bam
 
-
-		def criteria = branchCriteria {
-
-		}
 		merged_out_bam = dedup_bam
 			| map(it -> tuple('initial', it[0], it[2]))
 			| mix(filtered_bam, nodata.initial, nodata.remapped) // type, ag_id, bam
@@ -449,13 +445,11 @@ workflow waspRealigning {
 					return tuple(*it[1..(it.size()-1)])
 			} // ag_id, bam, bam_index
 
-		initial_read_counts = merged_out_bam.initial // ag_id, initial_bam, bam_index
+		out = merged_out_bam.initial // ag_id, initial_bam, bam_index
 			| join(snp_sites_by_ag_id) // ag_id, initial_bam, bam_index, variants, variants_index
 			| count_initial_reads // ag_id, initial_counts, counts_index
-
-		out = merged_out_bam.remapped // ag_id, remapped_bam, bam_index
-			| join(snp_sites_by_ag_id) // ag_id, remapped_bam, bam_index, variants, variants_index
-			| join(initial_read_counts) // ag_id, remapped_bam, bam_index, variants, variants_index, initial_counts, counts_index
+			| join(merged_out_bam.remapped) // ag_id, initial_counts, counts_index, remapped_bam, bam_index, variants, variants_index
+			| join(snp_sites_by_ag_id) // ag_id, initial_counts, counts_index, remapped_bam, bam_index, variants, variants_index
 			| count_remapped_reads // ag_id, summary_file, summary_file_index
 			| reformat2babachi // ag_id, babachi_formatted_summary_file
 	emit:
