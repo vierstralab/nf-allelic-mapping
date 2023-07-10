@@ -268,6 +268,7 @@ process merge_bam_files {
 	container "${params.container}"
 	scratch true
 	tag "${prefix}:${ag_number}"
+	cpus 2
 	publishDir "${params.outdir}/filtered_bam", pattern: "${ag_number}.remapped.merged.bam"
 
 	input:
@@ -278,11 +279,11 @@ process merge_bam_files {
 
 	script:
 	name = "${ag_number}.${prefix}.merged.bam"
-	non_empty_bam_files = bam_files.filter(t -> t.name != 'empty.bam').toString().tokenize()
-	if (non_empty_bam_files.size() >= 2)
+	non_empty_bam_files = bam_files.filter(t -> t.name != 'empty.bam')
+	if (non_empty_bam_files.toString().tokenize().size() >= 2)
 		"""
 		samtools merge -f reads.rmdup.original.bam \
-			${bam_files}
+			${non_empty_bam_files}
 
 		samtools sort \
 			-@${task.cpus} \
@@ -292,7 +293,7 @@ process merge_bam_files {
 		"""
 	else
 		"""
-		ln -s ${bam_files} reads.passing.bam
+		ln -s ${non_empty_bam_files} reads.passing.bam
 		samtools sort \
 			-@${task.cpus} \
 			-o ${name}  \
