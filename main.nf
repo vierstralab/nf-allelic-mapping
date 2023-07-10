@@ -284,8 +284,6 @@ process merge_bam_files {
 	System.err.println("List After: " + non_empty_bam_files);
 	if (non_empty_bam_files.toString().tokenize().size() >= 2)
 		"""
-		echo ${non_empty_bam_files}
-		echo ${bam_files}
 		samtools merge -f reads.rmdup.original.bam \
 			${non_empty_bam_files}
 
@@ -297,6 +295,8 @@ process merge_bam_files {
 		"""
 	else
 		"""
+		echo ${non_empty_bam_files}
+		echo ${bam_files}
 		ln -s ${non_empty_bam_files} reads.passing.bam
 		samtools sort \
 			-@${task.cpus} \
