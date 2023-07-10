@@ -304,7 +304,7 @@ process merge_bam_files {
 		"""
 }
 
-process calc_initial_read_counts {
+process calc_initial_reads {
 	container "${params.container}"
 	tag "${ag_number}"
 
@@ -317,14 +317,15 @@ process calc_initial_read_counts {
 	script:
 	name = "${ag_number}.coverage.bed.gz"
 	"""
-	python3 $moduleDir/bin/count_tags_pileup.py ${filtered_sites_file} \
+	python3 $moduleDir/bin/count_tags_pileup.py \
+		${filtered_sites_file} \
 		${bam_file} \
 		--only_coverage | bgzip -c > ${name}
 	tabix ${name}
 	"""
 }
 
-process count_reads {
+process count_remapped_reads {
 	tag "${ag_number}"
 	container "${params.container}"
 	publishDir "${params.outdir}/count_reads"
@@ -405,7 +406,6 @@ workflow waspRealigning {
 			| map(it -> tuple(it[1], it[0])) // indiv_id, ag_id
 			| combine(snps_sites, by: 0) // indiv_id, ag_id, variants, variants_index
 			| map(it -> tuple(*it[1..(it.size()-1)])) // ag_id, variants, variants_index
-			| view
 		
 		split_rs = samples_aggregations
 			| combine(r_tags) // ag_id, indiv_id, bam, bam_index, r_tag
@@ -447,13 +447,13 @@ workflow waspRealigning {
 		initial_read_counts = merged_out_bam.initial // type, ag_id, initial_bam, bam_index
 			| map(it -> tuple(*it[1..(it.size()-1)])) //  ag_id, initial_bam, bam_index
 			| join(snp_sites_by_ag_id) // ag_id, initial_bam, bam_index, variants, variants_index
-			| calc_initial_read_counts // ag_id, initial_counts, counts_index
+			| calc_initial_reads // ag_id, initial_counts, counts_index
 
 		out = merged_out_bam.remapped // type, ag_id, remapped_bam, bam_index
 			| map(it -> tuple(*it[1..(it.size()-1)])) //  ag_id, remapped_bam, bam_index
 			| join(snp_sites_by_ag_id) // ag_id, remapped_bam, bam_index, variants, variants_index
 			| join(initial_read_counts) // ag_id, remapped_bam, bam_index, variants, variants_index, initial_counts, counts_index
-			| count_reads // ag_id, summary_file, summary_file_index
+			| count_remapped_reads // ag_id, summary_file, summary_file_index
 			| reformat2babachi // ag_id, babachi_formatted_summary
 	emit:
 		out
