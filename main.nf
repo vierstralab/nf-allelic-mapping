@@ -304,7 +304,7 @@ process merge_bam_files {
 		"""
 }
 
-process calc_initial_reads {
+process count_initial_reads {
 	container "${params.container}"
 	tag "${ag_number}"
 
@@ -447,7 +447,7 @@ workflow waspRealigning {
 		initial_read_counts = merged_out_bam.initial // type, ag_id, initial_bam, bam_index
 			| map(it -> tuple(*it[1..(it.size()-1)])) //  ag_id, initial_bam, bam_index
 			| join(snp_sites_by_ag_id) // ag_id, initial_bam, bam_index, variants, variants_index
-			| calc_initial_reads // ag_id, initial_counts, counts_index
+			| count_initial_reads // ag_id, initial_counts, counts_index
 
 		out = merged_out_bam.remapped // type, ag_id, remapped_bam, bam_index
 			| map(it -> tuple(*it[1..(it.size()-1)])) //  ag_id, remapped_bam, bam_index
