@@ -171,7 +171,8 @@ process extract_to_remap_reads {
 	scratch true
 
 	input:
-		tuple val(ag_number), val(r_tag), path(bam_file), path(bam_file_index), env(n_counts), path(h5_tables)
+		tuple val(ag_number), val(r_tag), path(bam_file), path(bam_file_index), env(n_counts)
+		path h5_tables
 
 	output:
 		tuple val(ag_number), val(r_tag), path(out_bam_file), path("${out_bam_file}.bai"), emit: bamfile
@@ -410,10 +411,9 @@ workflow waspRealigning {
         		nodata: true
 			}
 		
-		to_remap_reads_and_initial_bam = split_rs.files // ag_id, r_tag, r_tag_bam, bam_index, read_count
-			| combine(h5_tables) // ag_id, r_tag, r_tag_bam, bam_index, read_count, h5_files
-			| extract_to_remap_reads // bamfile: ag_id, r_tag, r_tag_bam_dedup, bam_inex
-									 // fastq: ag_id, r_tag, fastq1, fastq2
+		to_remap_reads_and_initial_bam = extract_to_remap_reads(split_rs.files, h5_tables) 
+				// bamfile: ag_id, r_tag, r_tag_bam_dedup, bam_inex
+				// fastq: ag_id, r_tag, fastq1, fastq2
 
 		dedup_bam = to_remap_reads_and_initial_bam.bamfile // ag_id, r_tag, r_tag_bam_dedup, bam_inex
 
