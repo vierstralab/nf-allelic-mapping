@@ -401,12 +401,11 @@ workflow waspRealigning {
 			| collect(sort: true) // varaints files
 			| merge_snv_files
 		
+		snps_sites | view
 		snp_sites_by_ag_id = samples_aggregations
-			| map(it -> tuple(it[0], it[1])) // ag_id, indiv_id
-			| view
-			| combine(snps_sites, by: 1) // ag_id, indiv_id, variants, variants_index
-			| view
-			| map(it -> tuple(it[0], it[2], it[3])) // ag_id, variants, variants_index
+			| map(it -> tuple(it[1], it[0])) // indiv_id, ag_id
+			| combine(snps_sites) // indiv_id, ag_id, variants, variants_index
+			| map(it -> tuple(*it[1..(it.size()-1)])) // ag_id, variants, variants_index
 		
 		split_rs = samples_aggregations
 			| combine(r_tags) // ag_id, indiv_id, bam, bam_index, r_tag
@@ -444,9 +443,7 @@ workflow waspRealigning {
 				initial: it[0] == 'initial'
         		remapped: true
 			}
-		merged_out_bam.initial | view
-		merged_out_bam.remapped | view
-		snp_sites_by_ag_id | view
+
 		initial_read_counts = merged_out_bam.initial // type, ag_id, initial_bam, bam_index
 			| map(it -> tuple(*it[1..(it.size()-1)])) //  ag_id, initial_bam, bam_index
 			| join(snp_sites_by_ag_id) // ag_id, initial_bam, bam_index, variants, variants_index
