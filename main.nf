@@ -149,16 +149,17 @@ process split_reads {
 	containerOptions "${get_container(params.genome_fasta_file)}"
 
 	input:
-		tuple val(ag_number), path(bam_file), path(bam_index_file), val(r_tag)
+		tuple val(ag_number), val(indiv_id), path(bam_file), path(bam_index_file), val(r_tag)
 
 	output:
-		tuple val(ag_number), val(r_tag), path(name), path("${name}.bai"), env(n_counts)
+		tuple val(ag_number), val(indiv_id), val(r_tag), path(name), path("${name}.bai"), env(n_counts)
 
 	script:
 	name = "${ag_number}.${r_tag}.bam"
 	pars = r_tag == 'pe' ? "-f 1" : "-F 1"
 	"""
-	samtools view -O bam -h ${pars} --reference ${params.genome_fasta_file} ${bam_file} > ${name}
+	samtools view -O bam -h ${pars} \
+		--reference ${params.genome_fasta_file} ${bam_file} > ${name}
 	samtools index ${name}
 	n_counts=\$(samtools view -c ${name})
 	"""
@@ -171,8 +172,7 @@ process extract_to_remap_reads {
 	scratch true
 
 	input:
-		tuple val(ag_number), val(r_tag), path(bam_file), path(bam_file_index), env(n_counts)
-		path h5_tables
+		tuple val(ag_number), val(indiv_id), val(r_tag), path(bam_file), path(bam_file_index), env(n_counts), path(h5_tables)
 
 	output:
 		tuple val(ag_number), val(r_tag), path(out_bam_file), path("${out_bam_file}.bai"), emit: bamfile
@@ -386,7 +386,7 @@ workflow waspRealigning {
 	main:
 		r_tags = Channel.of('pe', 'se')
 
-		h5_tables = generate_h5_tables().collect() // h5 files
+		h5_tables = generate_h5_tables().collect(sort: true) // h5 files
 		
 		snps_sites = samples_aggregations
 			| map(it -> it[1]) // indiv_id
@@ -403,9 +403,8 @@ workflow waspRealigning {
 			| map(it -> tuple(it[0], it[2], it[3])) // ag_id, variants, variants_index
 		
 		split_rs = samples_aggregations
-			| map(it -> tuple(it[0], it[2], it[3])) // ag_id, bam, bam_index
-			| combine(r_tags) // ag_id, bam, bam_index, r_tag
-			| split_reads // ag_id, r_tag, r_tag_bam, bam_index, read_count
+			| combine(r_tags) // ag_id, indiv_id, bam, bam_index, r_tag
+			| split_reads // ag_id, indiv_id, r_tag, r_tag_bam, bam_index, read_count
 			| branch {
 				files: it[4].toInteger() > 0
         		nodata: true
