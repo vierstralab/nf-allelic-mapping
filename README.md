@@ -1,7 +1,7 @@
 # nf-allelic-mapping
 
-## Run
-```nextflow run /home/sabramov/projects/ENCODE4/nf-allelic-mapping/main.nf -profile Altius -resume```
+## Starting the pipeline
+```nextflow run main.nf -profile Altius -resume```
 ## Output format
 Upon completion pipeline creates 3 folders
 - `target_variants` - consists of per-individual files with all SNVs passing thresholds specified in params.config. Each file has the following columns:
