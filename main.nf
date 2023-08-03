@@ -394,6 +394,7 @@ workflow waspRealigning {
 		h5_tables = generate_h5_tables().collect(sort: true) // h5 files
 		snps_sites = samples_aggregations
 			| map(it -> it[1]) // indiv_id
+			| unique { it[0] }
 			| filter_variants // indiv_id, variants, variants_index
 
 		snps_sites
