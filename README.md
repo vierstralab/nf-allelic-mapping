@@ -1,7 +1,11 @@
 # nf-allelic-mapping
+Pipeline for remapping of bam files using WASP.
 
 ## Starting the pipeline
-```nextflow run main.nf -profile Altius -resume```
+- Fill in params in params.config
+- Run ```nextflow run main.nf -profile Altius -resume```
+
+*** To make a test run on altius server - use the default parameters in the params.config ***
 ## Output format
 Upon completion pipeline creates 3 folders
 - `target_variants` - consists of per-individual files with all SNVs passing thresholds specified in params.config. Each file has the following columns:
