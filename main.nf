@@ -333,7 +333,6 @@ process count_remapped_reads {
 	input:
 		tuple val(ag_number), path(rmdup_counts), path(rmdup_counts_index), path(bam_passing_file), path(bam_passing_file_index), path(filtered_sites_file), path(filtered_sites_file_index)
 
-
 	output:
 		tuple val(ag_number), path(name), path("${name}.tbi")
 
@@ -454,6 +453,7 @@ workflow waspRealigning {
 			| join(snp_sites_by_ag_id) // ag_id, initial_counts, counts_index, remapped_bam, bam_index, variants, variants_index
 			| count_remapped_reads // ag_id, summary_file, summary_file_index
 			| reformat2babachi // ag_id, babachi_formatted_summary_file
+
 	emit:
 		out
 }
