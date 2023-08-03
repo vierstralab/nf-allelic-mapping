@@ -408,6 +408,7 @@ workflow waspRealigning {
 		
 		split_rs = samples_aggregations
 			| combine(r_tags) // ag_id, indiv_id, bam, bam_index, r_tag
+			| view()
 			| split_reads // ag_id, indiv_id, r_tag, r_tag_bam, bam_index, read_count
 			| branch {
 				files: it[5].toInteger() > 0
