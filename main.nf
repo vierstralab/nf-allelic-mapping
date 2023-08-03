@@ -333,6 +333,7 @@ process count_remapped_reads {
 	input:
 		tuple val(ag_number), path(rmdup_counts), path(rmdup_counts_index), path(bam_passing_file), path(bam_passing_file_index), path(filtered_sites_file), path(filtered_sites_file_index)
 
+
 	output:
 		tuple val(ag_number), path(name), path("${name}.tbi")
 
