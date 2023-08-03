@@ -5,7 +5,7 @@ Pipeline for remapping of bam files using WASP.
 - Fill in params in params.config
 - Run ```nextflow run main.nf -profile Altius -resume```
 
-*** To make a test run on the Altius server run ```nextflow run main.nf -profile Altius -resume -c test/test_params.main.config``` ***
+*** To make a test run on the Altius server run ```nextflow run main.nf -profile Altius -resume -c test/test_params.main.config```. Test run takes about 30 minutes.***
 ## Output format
 Upon completion pipeline creates 3 folders
 - `target_variants` - consists of per-individual files with all SNVs passing thresholds specified in params.config. Each file has the following columns:
