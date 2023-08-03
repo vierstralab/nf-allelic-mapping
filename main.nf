@@ -143,7 +143,7 @@ process generate_h5_tables {
 }
 
 process split_reads {
-	tag "${ag_number}"
+	tag "${ag_number}:${r_tag}"
 	container "${params.container}"
 	containerOptions "${get_container(params.genome_fasta_file)}"
 
