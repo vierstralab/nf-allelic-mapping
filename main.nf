@@ -408,7 +408,6 @@ workflow waspRealigning {
 		
 		split_rs = samples_aggregations
 			| combine(r_tags) // ag_id, indiv_id, bam, bam_index, r_tag
-			| view()
 			| split_reads // ag_id, indiv_id, r_tag, r_tag_bam, bam_index, read_count
 			| branch {
 				files: it[5].toInteger() > 0
@@ -463,7 +462,7 @@ workflow {
 		| splitCsv(header:true, sep:'\t')
 		| map(row -> tuple(row.ag_id, row.indiv_id, file(row.bam_file), file("${row.bam_file}.crai")))
 		| filter { !it[0].isEmpty() }
-		| unique { it[1] }
+		| unique { it[0] }
 
 	samples_aggregations
 		| map(it -> it[0])
