@@ -6,7 +6,7 @@ import os
 def get_snps_file_name(value, prefix):
     if pd.isna(value):
         return value
-    return os.path.join(prefix, str(value) + '.snps.bed')
+    return os.path.join(prefix, f'{value}.snps.bed')
 
 def main(old_meta, output, file_prefix):
     df = pd.read_table(old_meta)
