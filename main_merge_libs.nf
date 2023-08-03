@@ -11,7 +11,8 @@ include  { waspRealigning; add_snp_files_to_meta; get_container } from './main'
 // TODO: ADD TEST CASE
 process merge_by_indiv_and_cell_type {
 	tag "${indiv_id}:${cell_type}"
-	publishDir params.outdir + '/merged'
+	publishDir "${params.outdir}/merged"
+
 	container "${params.container}"
 	containerOptions "${get_container(params.genome_fasta_file)}"
 	cpus 2
