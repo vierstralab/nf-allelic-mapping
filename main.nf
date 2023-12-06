@@ -462,7 +462,11 @@ workflow waspRealigning {
 workflow {
 	samples_aggregations = Channel.fromPath(params.samples_file)
 		| splitCsv(header:true, sep:'\t')
-		| map(row -> tuple(row.ag_id, row.indiv_id, file(row.bam_file), file("${row.bam_file}.crai")))
+		| map(row -> tuple(row.ag_id, row.indiv_id,
+                file(row.filtered_alignments_bam),
+                file(row?.bam_index ?: "${row.filtered_alignments_bam}.crai")
+            )
+        )
 		| filter { !it[0].isEmpty() }
 		| unique { it[0] }
 
