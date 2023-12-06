@@ -394,7 +394,7 @@ workflow waspRealigning {
 		h5_tables = generate_h5_tables().collect(sort: true) // h5 files
 		snps_sites = samples_aggregations
 			| map(it -> it[1]) // indiv_id
-			| unique { it[0] }
+			| unique { it } 
 			| filter_variants // indiv_id, variants, variants_index
 
 		snps_sites
@@ -468,7 +468,7 @@ workflow {
             )
         )
 		| filter { !it[1].isEmpty() }
-		| unique { it[0] }
+
 
 	samples_aggregations
 		| map(it -> it[1])
@@ -481,6 +481,7 @@ workflow {
 	add_snp_files_to_meta() 
 	out = samples_aggregations | waspRealigning
 }
+
 
 workflow reformat {
 	add_snp_files_to_meta()
