@@ -467,7 +467,7 @@ workflow {
                 file(row?.bam_index ?: "${row.filtered_alignments_bam}.crai")
             )
         )
-		| filter { !it[0].isEmpty() }
+		| filter { !it[1].isEmpty() }
 		| unique { it[0] }
 
 	samples_aggregations
