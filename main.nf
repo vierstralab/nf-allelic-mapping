@@ -471,7 +471,7 @@ workflow {
 		| unique { it[0] }
 
 	samples_aggregations
-		| map(it -> it[0])
+		| map(it -> it[1])
 		| unique()
 		| count()
 		| view {
