@@ -57,7 +57,6 @@ def get_container(file_name) {
   return container
 }
 
-
 process filter_variants {
 	tag "${indiv_id}"
 	container "${params.container}"
