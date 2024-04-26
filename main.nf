@@ -479,8 +479,8 @@ workflow {
 			it -> """There are ${it} unique INDIV_IDs in the ${params.samples_file}. Please, check that they correspond to IDs in ${params.genotype_file}"""
 		}
 
-	add_snp_files_to_meta() 
-	out = samples_aggregations | waspRealigning
+	add_snp_files_to_meta(params.samples_file) 
+	samples_aggregations | waspRealigning
 }
 
 
