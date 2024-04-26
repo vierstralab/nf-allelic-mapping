@@ -369,7 +369,9 @@ process reformat2babachi {
 process add_snp_files_to_meta {
 	publishDir "${params.outdir}"
 	container "${params.container}"
-	containerOptions "${get_container(params.samples_file)}"
+
+    input:
+        path samples_file
 
 	output:
 		path name
@@ -378,7 +380,7 @@ process add_snp_files_to_meta {
 	name = "meta+sample_ids.tsv"
 	"""
 	python3 $moduleDir/bin/add_meta.py \
-		${params.samples_file} \
+		${samples_file} \
 		${name} \
 		${params.outdir}/babachi_files
 	"""
@@ -483,7 +485,7 @@ workflow {
 
 
 workflow reformat {
-	add_snp_files_to_meta()
+	add_snp_files_to_meta(params.samples_file)
 	params.remapped_files_dir = "${params.outdir}/remapped_files/"
 	Channel.fromPath("${params.remapped_files_dir}/*.bed.gz")
 		| map(
