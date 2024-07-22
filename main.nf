@@ -492,7 +492,7 @@ workflow reformat {
 			it -> tuple(
 				it.name.replaceAll('.bed.gz', ''), 
 				it, 
-				file("${it.name}.tbi")
+				file("${it.parent}/${it.name}.tbi")
 			))
 		| reformat2babachi
 }
