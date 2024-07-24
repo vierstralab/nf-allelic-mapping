@@ -267,7 +267,7 @@ process merge_bam_files {
 	scratch true
 	tag "${prefix}:${ag_number}"
 	cpus 2
-	publishDir "${params.outdir}/filtered_bam", pattern: "${ag_number}.remapped.merged.bam"
+	publishDir "${params.outdir}/filtered_bam", pattern: "${name}*"
 
 	input:
 		tuple val(prefix), val(ag_number), path(bam_files)
