@@ -16,7 +16,7 @@ def main(in_file):
             n_ref, n_alt, n_original_reads, n_failed_mapping, n_failed_genotyping, n_failed_bias = map(int, [n_ref, n_alt, n_original_reads, n_failed_mapping, n_failed_genotyping])
             assert n_original_reads == n_alt + n_ref + n_failed_bias + n_failed_genotyping + n_failed_mapping
 
-            print('\t'.join(map(str, [chrom, start, end, ID, ref, alt, n_ref, n_alt, name, variant.raf, variant.aaf, n_failed_mapping / n_original_reads if n_original_reads > 0 else 0])))
+            print('\t'.join(map(str, [chrom, start, end, ID, ref, alt, n_ref, n_alt, name, variant.aaf, variant.raf, n_failed_mapping / n_original_reads if n_original_reads > 0 else 0])))
 
 
 if __name__ == '__main__':
