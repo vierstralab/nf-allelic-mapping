@@ -11,6 +11,7 @@ import pysam
 
 logging.basicConfig(stream = sys.stderr, level='WARNING')
 
+
 def transform_af(value):
 	if value == '.' or value == 'None' or value is None or pd.isna(value) or value == '':
 		return None
@@ -265,7 +266,7 @@ def main(argv = sys.argv[1:]):
 
 			print(variant_str, n_ref, n_alt, n_original_reads, n_failed_mapping,
 			n_failed_genotyping, n_failed_bias, sep='\t')
-    
+
+   
 if __name__ == "__main__":
     main()
-

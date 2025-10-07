@@ -9,12 +9,12 @@ process align_reads {
     // TODO: change to conventional tuple val(meta), val(other params).
 	containerOptions "${get_container(params.genome_fasta_file)} ${get_container(params.nuclear_chroms)} ${params.aligner == 'bowtie-chip' ? get_container(params.bowtie_idx) : ''}"
 	scratch true
-	tag "${ag_number}:${r_tag}"
+	tag "${sample_id}:${r_tag}"
 	cpus 3
 	// fastq1 is the same as fastq2 if r_tag == "se"
 	input:
-		tuple val(ag_number), val(r_tag), path(fastq1), path(fastq2)
-		// "ag_number" - ID of initial bam file that was splitted
+		tuple val(sample_id), val(r_tag), path(fastq1), path(fastq2)
+		// "sample_id" - ID of initial bam file that was splitted
 		// into pe and se reads.
 
 		// "r_tag" - indicates which reads were extracted from the bam file.
@@ -24,11 +24,11 @@ process align_reads {
 		// Use any of them for se reads aligning
 
 	output:
-		tuple val(ag_number), val(r_tag), path(name)
+		tuple val(sample_id), val(r_tag), path(name)
 
 	script:
 	// Name of the output bam file
-	name = "${ag_number}.${r_tag}.realigned.bam"
+	name = "${sample_id}.${r_tag}.realigned.bam"
 	switch(params.aligner) {
 		case 'bwa-altius-dnase':
 			// PE reads alignment
@@ -143,18 +143,18 @@ process generate_h5_tables {
 }
 
 process split_reads {
-	tag "${ag_number}:${r_tag}"
+	tag "${sample_id}:${r_tag}"
 	container "${params.container}"
 	containerOptions "${get_container(params.genome_fasta_file)}"
 
 	input:
-		tuple val(ag_number), val(indiv_id), path(bam_file), path(bam_index_file), val(r_tag)
+		tuple val(sample_id), val(indiv_id), path(bam_file), path(bam_index_file), val(r_tag)
 
 	output:
-		tuple val(ag_number), val(indiv_id), val(r_tag), path(name), path("${name}.bai"), env(n_counts)
+		tuple val(sample_id), val(indiv_id), val(r_tag), path(name), path("${name}.bai"), env(n_counts)
 
 	script:
-	name = "${ag_number}.${r_tag}.bam"
+	name = "${sample_id}.${r_tag}.bam"
 	pars = r_tag == 'pe' ? "-f 1" : "-F 1"
 	"""
 	samtools view -O bam -h ${pars} \
@@ -165,21 +165,21 @@ process split_reads {
 }
 
 process extract_to_remap_reads {
-	tag "${ag_number}:${r_tag}"
+	tag "${sample_id}:${r_tag}"
 	container "${params.container}"
 	cpus 2
 	scratch true
 
 	input:
-		tuple val(ag_number), val(indiv_id), val(r_tag), path(bam_file), path(bam_file_index), env(n_counts)
+		tuple val(sample_id), val(indiv_id), val(r_tag), path(bam_file), path(bam_file_index), env(n_counts)
 		path h5_tables
 
 	output:
-		tuple val(ag_number), val(r_tag), path(out_bam_file), path("${out_bam_file}.bai"), emit: bamfile
-		tuple val(ag_number), val(r_tag), path(fasta1), path(fasta2), emit: fastq
+		tuple val(sample_id), val(r_tag), path(out_bam_file), path("${out_bam_file}.bai"), emit: bamfile
+		tuple val(sample_id), val(r_tag), path(fasta1), path(fasta2), emit: fastq
 	
 	script:
-	name = "${ag_number}.${r_tag}.rmdup"
+	name = "${sample_id}.${r_tag}.rmdup"
 	out_bam_file = "${name}.bam"
 	fasta1 = "${name}.remap.fq1.gz"
 	fasta2 = "${name}.remap.fq2.gz"
@@ -245,16 +245,16 @@ process extract_to_remap_reads {
 process wasp_filter_reads {
 	container "${params.container}"
 	scratch true
-	tag "${ag_number}:${r_tag}"
+	tag "${sample_id}:${r_tag}"
 
 	input:
-		tuple val(ag_number), val(r_tag), path(bam_file), path(initial_bam_file), path(initial_bam_file_index)
+		tuple val(sample_id), val(r_tag), path(bam_file), path(initial_bam_file), path(initial_bam_file_index)
 	
 	output:
-		tuple val(ag_number), path(name)
+		tuple val(sample_id), path(name)
 
 	script:
-	name = "${ag_number}.${r_tag}.result.bam"
+	name = "${sample_id}.${r_tag}.result.bam"
 	"""
 	python3 ${wasp_path}/mapping/filter_remapped_reads.py \
 		${initial_bam_file} \
@@ -266,18 +266,18 @@ process wasp_filter_reads {
 process merge_bam_files {
 	container "${params.container}"
 	scratch true
-	tag "${prefix}:${ag_number}"
+	tag "${prefix}:${sample_id}"
 	cpus 2
 	publishDir "${params.outdir}/filtered_bam", pattern: "${name}*"
 
 	input:
-		tuple val(prefix), val(ag_number), path(bam_files)
+		tuple val(prefix), val(sample_id), path(bam_files)
 
 	output:
-		tuple val(prefix), val(ag_number), path(name), path("${name}.bai")
+		tuple val(prefix), val(sample_id), path(name), path("${name}.bai")
 
 	script:
-	name = "${ag_number}.${prefix}.merged.bam"
+	name = "${sample_id}.${prefix}.merged.bam"
 	// There is probably a cleaner way, but this will do for now
 	non_empty_bam_files = bam_files.stream().filter(
 			s -> s.name != 'empty.bam'
@@ -306,16 +306,16 @@ process merge_bam_files {
 
 process count_initial_reads {
 	container "${params.container}"
-	tag "${ag_number}"
+	tag "${sample_id}"
 
 	input:
-		tuple val(ag_number), path(bam_file), path(bam_file_index), path(filtered_sites_file), path(filtered_sites_file_index)
+		tuple val(sample_id), path(bam_file), path(bam_file_index), path(filtered_sites_file), path(filtered_sites_file_index)
 
 	output:
-		tuple val(ag_number), path(name), path("${name}.tbi")
+		tuple val(sample_id), path(name), path("${name}.tbi")
 
 	script:
-	name = "${ag_number}.coverage.bed.gz"
+	name = "${sample_id}.coverage.bed.gz"
 	"""
 	python3 $moduleDir/bin/count_tags_pileup.py \
 		${filtered_sites_file} \
@@ -326,18 +326,18 @@ process count_initial_reads {
 }
 
 process count_remapped_reads {
-	tag "${ag_number}"
+	tag "${sample_id}"
 	container "${params.container}"
 	publishDir "${params.outdir}/remapped_files"
 
 	input:
-		tuple val(ag_number), path(rmdup_counts), path(rmdup_counts_index), path(bam_passing_file), path(bam_passing_file_index), path(filtered_sites_file), path(filtered_sites_file_index)
+		tuple val(sample_id), path(rmdup_counts), path(rmdup_counts_index), path(bam_passing_file), path(bam_passing_file_index), path(filtered_sites_file), path(filtered_sites_file_index)
 
 	output:
-		tuple val(ag_number), path(name), path("${name}.tbi")
+		tuple val(sample_id), path(name), path("${name}.tbi")
 
 	script:
-	name = "${ag_number}.bed.gz"
+	name = "${sample_id}.bed.gz"
 	"""
 	python3 $moduleDir/bin/count_tags_pileup.py \
 		${filtered_sites_file} ${bam_passing_file} \
@@ -349,17 +349,17 @@ process count_remapped_reads {
 
 process reformat2babachi {
 	publishDir "${params.outdir}/babachi_files"
-	tag "${ag_id}"
+	tag "${sample_id}"
 	container "${params.container}"
 
 	input:
-		tuple val(ag_id), path(bed_file), path(bed_file_index)
+		tuple val(sample_id), path(bed_file), path(bed_file_index)
 
 	output:
-		tuple val(ag_id), path(name)
+		tuple val(sample_id), path(name)
 
 	script:
-	name = "${ag_id}.snps.bed"
+	name = "${sample_id}.snps.bed"
 	"""
 	echo "#chr\tstart\tend\tID\tref\talt\tref_counts\talt_counts\tsample_id\tAAF\tRAF\tFMR" > ${name}
 	python3 $moduleDir/bin/tags_to_babachi_format.py ${bed_file} \
@@ -389,7 +389,7 @@ process add_snp_files_to_meta {
 
 workflow waspRealigning {
 	take:
-		samples_aggregations // ag_id, indiv_id, bam, bam_index
+		samples_aggregations // sample_id, indiv_id, bam, bam_index
 	main:
 		r_tags = Channel.of('pe', 'se') // flag that indicates paired-end/single-end reads
 
@@ -404,57 +404,60 @@ workflow waspRealigning {
 			| collect(sort: true) // varaints files
 			| collect_snv_files
 		
-		snp_sites_by_ag_id = samples_aggregations
-			| map(it -> tuple(it[1], it[0])) // indiv_id, ag_id
-			| combine(snps_sites, by: 0) // indiv_id, ag_id, variants, variants_index
-			| map(it -> tuple(*it[1..(it.size()-1)])) // ag_id, variants, variants_index
+		snp_sites_by_sample_id = samples_aggregations
+			| map(it -> tuple(it[1], it[0])) // indiv_id, sample_id
+			| combine(snps_sites, by: 0) // indiv_id, sample_id, variants, variants_index
+			| map(it -> tuple(*it[1..(it.size()-1)])) // sample_id, variants, variants_index
 		
 		split_rs = samples_aggregations
-			| combine(r_tags) // ag_id, indiv_id, bam, bam_index, r_tag
-			| split_reads // ag_id, indiv_id, r_tag, r_tag_bam, bam_index, read_count
+			| combine(r_tags) // sample_id, indiv_id, bam, bam_index, r_tag
+			| split_reads // sample_id, indiv_id, r_tag, r_tag_bam, bam_index, read_count
 			| branch {
 				files: it[5].toInteger() > 0
         		nodata: true
 			}
 		
-		to_remap_reads_and_initial_bam = extract_to_remap_reads(split_rs.files, h5_tables) 
-				// bamfile: ag_id, r_tag, r_tag_bam_dedup, bam_inex
-				// fastq: ag_id, r_tag, fastq1, fastq2
+		to_remap_reads_and_initial_bam = extract_to_remap_reads(
+            split_rs.files,
+            h5_tables
+        ) 
+				// bamfile: sample_id, r_tag, r_tag_bam_dedup, bam_inex
+				// fastq: sample_id, r_tag, fastq1, fastq2
 
-		dedup_bam = to_remap_reads_and_initial_bam.bamfile // ag_id, r_tag, r_tag_bam_dedup, bam_inex
+		dedup_bam = to_remap_reads_and_initial_bam.bamfile // sample_id, r_tag, r_tag_bam_dedup, bam_inex
 
-		filtered_bam = to_remap_reads_and_initial_bam.fastq // ag_id, r_tag, fastq1, fastq2
-			| align_reads // ag_id, r_tag, realigned_bam
-			| join(dedup_bam, by: [0, 1]) // ag_id, r_tag, realigned_bam, r_tag_bam_dedup, bam_index
-			| wasp_filter_reads // ag_id, filtered_bam
-			| map(it -> tuple('remapped', *it)) // type, ag_id, filtered_bam
+		filtered_bam = to_remap_reads_and_initial_bam.fastq // sample_id, r_tag, fastq1, fastq2
+			| align_reads // sample_id, r_tag, realigned_bam
+			| join(dedup_bam, by: [0, 1]) // sample_id, r_tag, realigned_bam, r_tag_bam_dedup, bam_index
+			| wasp_filter_reads // sample_id, filtered_bam
+			| map(it -> tuple('remapped', *it)) // type, sample_id, filtered_bam
 
 		nodata = split_rs.nodata
-			| map(it -> tuple(it[0], file('empty.bam'))) // ag_id, 'empty.bam'
+			| map(it -> tuple(it[0], file('empty.bam'))) // sample_id, 'empty.bam'
 			| multiMap { it ->
 				remapped: tuple('remapped', *it)
 				initial: tuple('initial', *it)
-			} // type, ag_id, filtered_bam
+			} // type, sample_id, filtered_bam
 
 		merged_out_bam = dedup_bam
 			| map(it -> tuple('initial', it[0], it[2]))
-			| mix(filtered_bam, nodata.initial, nodata.remapped) // type, ag_id, bam
+			| mix(filtered_bam, nodata.initial, nodata.remapped) // type, sample_id, bam
 			| groupTuple(size: 2, by: [0, 1])
-			| merge_bam_files // type, ag_id, bam, bam_index
+			| merge_bam_files // type, sample_id, bam, bam_index
 			| branch {
 				initial: it[0] == 'initial'
 					return tuple(*it[1..(it.size()-1)])
 				remapped: it[0] == 'remapped'
 					return tuple(*it[1..(it.size()-1)])
-			} // ag_id, bam, bam_index
+			} // sample_id, bam, bam_index
 
-		out = merged_out_bam.initial // ag_id, initial_bam, bam_index
-			| join(snp_sites_by_ag_id) // ag_id, initial_bam, bam_index, variants, variants_index
-			| count_initial_reads // ag_id, initial_counts, counts_index
-			| join(merged_out_bam.remapped) // ag_id, initial_counts, counts_index, remapped_bam, bam_index, variants, variants_index
-			| join(snp_sites_by_ag_id) // ag_id, initial_counts, counts_index, remapped_bam, bam_index, variants, variants_index
-			| count_remapped_reads // ag_id, summary_file, summary_file_index
-			| reformat2babachi // ag_id, babachi_formatted_summary_file
+		out = merged_out_bam.initial // sample_id, initial_bam, bam_index
+			| join(snp_sites_by_sample_id) // sample_id, initial_bam, bam_index, variants, variants_index
+			| count_initial_reads // sample_id, initial_counts, counts_index
+			| join(merged_out_bam.remapped) // sample_id, initial_counts, counts_index, remapped_bam, bam_index, variants, variants_index
+			| join(snp_sites_by_sample_id) // sample_id, initial_counts, counts_index, remapped_bam, bam_index, variants, variants_index
+			| count_remapped_reads // sample_id, summary_file, summary_file_index
+			| reformat2babachi // sample_id, babachi_formatted_summary_file
 
 	emit:
 		out
@@ -464,7 +467,7 @@ workflow waspRealigning {
 workflow {
 	samples_aggregations = Channel.fromPath(params.samples_file)
 		| splitCsv(header:true, sep:'\t')
-		| map(row -> tuple(row.ag_id, row.indiv_id,
+		| map(row -> tuple(row.sample_id, row.indiv_id,
                 file(row.cram_file),
                 file(row?.cram_index ?: "${row.cram_file}.crai")
             )
@@ -496,4 +499,44 @@ workflow reformat {
 				file("${it.parent}/${it.name}.tbi")
 			))
 		| reformat2babachi
+}
+
+
+process merge_by_indiv_and_cell_type {
+	tag "${indiv_id}:${cell_type}"
+	publishDir "${params.outdir}/merged"
+
+	container "${params.container}"
+	containerOptions "${get_container(params.genome_fasta_file)}"
+	cpus 2
+
+	input:
+		tuple val(indiv_id), val(cell_type), val(bam_files)
+
+	output:
+		tuple val(sample_id), val(indiv_id), path(name), path("${name}.crai")
+
+	script:
+	sample_id = "${indiv_id}_${cell_type}"
+	name = "${sample_id}.cram"
+	"""
+	samtools merge -f -@${task.cpus} \
+		-O CRAM --write-index \
+		--reference ${params.genome_fasta_file} \
+		${name} ${bam_files}
+	"""
+
+
+}
+
+workflow mergeByIndivAndCellType{
+	bams_grouped_by_indiv_and_cell_type = Channel.fromPath(params.samples_file)
+		| splitCsv(header:true, sep:'\t')
+		| map(row -> tuple(row.indiv_id, row.cell_type, file(row.bam_file)))
+		| groupTuple(by: [0,1])
+		| map(it -> tuple(it[0], it[1], it[2].flatten().join(" ")))
+		| merge_by_indiv_and_cell_type
+		| waspRealigning
+
+	add_snp_files_to_meta() 
 }
