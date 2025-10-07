@@ -6,6 +6,7 @@ process align_reads {
 	container "${params.container}"
 	// All external files (passed as params) should be wrapped 
 	// in "get_container" function and added to containerOptions, see below
+    // TODO: change to conventional tuple val(meta), val(other params).
 	containerOptions "${get_container(params.genome_fasta_file)} ${get_container(params.nuclear_chroms)} ${params.aligner == 'bowtie-chip' ? get_container(params.bowtie_idx) : ''}"
 	scratch true
 	tag "${ag_number}:${r_tag}"
