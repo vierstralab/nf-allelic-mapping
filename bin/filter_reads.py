@@ -14,6 +14,7 @@ import sys
 import logging
 import pysam
 import re
+import argparse
 
 '''
 Exception when a bad read is found
@@ -73,7 +74,7 @@ def validate_read(read, min_mapq = 1, max_mismatches = 2):
 
     return read
 
-import argparse
+
 
 parser = argparse.ArgumentParser(prog = "filter_reads", description = "manual corrects the flags in a single- or pair-end BAM alignment file")
 parser.add_argument("raw_alignment", type = str, help = "Inupt raw alignment file (must be sorted by name")
