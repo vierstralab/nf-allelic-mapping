@@ -14,4 +14,6 @@ dependencies:
   - pytables
   - samtools=1.15
   - bowtie2
+  - pip:
+    - git+https://github.com/vierstralab/genome-tools.git
 prefix: /home/sabramov/miniconda3/envs/babachi

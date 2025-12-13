@@ -312,16 +312,16 @@ process count_initial_reads {
 		tuple val(sample_id), path(bam_file), path(bam_file_index), path(filtered_sites_file), path(filtered_sites_file_index)
 
 	output:
-		tuple val(sample_id), path(name), path("${name}.tbi")
+		tuple val(sample_id), path(name)
 
 	script:
-	name = "${sample_id}.coverage.bed.gz"
+	name = "${sample_id}.coverage.tsv.gz"
 	"""
 	python3 $moduleDir/bin/count_tags_pileup.py \
 		${filtered_sites_file} \
 		${bam_file} \
-		--only_coverage | bgzip -c > ${name}
-	tabix ${name}
+        ${name} \
+		--only_coverage
 	"""
 }
 
@@ -331,7 +331,7 @@ process count_remapped_reads {
 	publishDir "${params.outdir}/remapped_files"
 
 	input:
-		tuple val(sample_id), path(rmdup_counts), path(rmdup_counts_index), path(bam_passing_file), path(bam_passing_file_index), path(filtered_sites_file), path(filtered_sites_file_index)
+		tuple val(sample_id), path(rmdup_counts), path(bam_passing_file), path(bam_passing_file_index), path(filtered_sites_file), path(filtered_sites_file_index)
 
 	output:
 		tuple val(sample_id), path(name), path("${name}.tbi")
@@ -340,10 +340,10 @@ process count_remapped_reads {
 	name = "${sample_id}.bed.gz"
 	"""
 	python3 $moduleDir/bin/count_tags_pileup.py \
-		${filtered_sites_file} ${bam_passing_file} \
-		--original_dedup_cover ${rmdup_counts} \
-		| sort-bed - | bgzip -c > ${name}
-	tabix ${name}
+		${filtered_sites_file} \
+        ${bam_passing_file} \
+        ${name} \
+		--original_dedup_cover ${rmdup_counts}
 	"""
 }
 
@@ -361,9 +361,7 @@ process reformat2babachi {
 	script:
 	name = "${sample_id}.snps.bed"
 	"""
-	echo "#chr\tstart\tend\tID\tref\talt\tref_counts\talt_counts\tsample_id\tAAF\tRAF\tFMR" > ${name}
-	python3 $moduleDir/bin/tags_to_babachi_format.py ${bed_file} \
-		| sort-bed - >> ${name}
+	python3 $moduleDir/bin/tags_to_babachi_format.py ${bed_file} ${name}
 	"""
 }
 

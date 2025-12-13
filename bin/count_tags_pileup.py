@@ -7,9 +7,10 @@ import logging
 import pandas as pd
 from argparse import ArgumentParser
 from tqdm import tqdm
+
 from genome_tools.data.extractors import AllelicReadsExtractor
 from genome_tools import df_to_intervals, VariantInterval
-
+from genome_tools.helpers import df_to_tabix
 
 logging.basicConfig(stream = sys.stderr, level='WARNING')
 
@@ -84,6 +85,9 @@ if __name__ == "__main__":
     parser.add_argument("cram_file", metavar = "cram_file", type = str, 
                         help = "Path to BAM-format tag sequence file")
     
+    parser.add_argument("output_file", metavar = "output_file", type = str, 
+                        help = "Path to output file")
+    
     parser.add_argument("--original_dedup_cover", metavar = "counts from original deduped bam file",
                         type = str, default=None,
                         help = "Path to bed format file with total read counts")
@@ -96,6 +100,11 @@ if __name__ == "__main__":
     cram_file = args.cram_file
     if args.only_coverage:
         result = get_total_counts(all_variants, cram_file).to_frame(name='coverage')
+        result.to_csv(
+            sys.stdout,
+            sep='\t',
+            index=False
+        )
     else:
         dedup_df = pd.read_table(args.original_dedup_cover)['coverage'].values
         result = main(
@@ -103,10 +112,8 @@ if __name__ == "__main__":
             cram_file,
             dedup_df
         )
-
-    result.to_csv(
-            sys.stdout,
-            sep='\t',
-            index=False
+        df_to_tabix(
+            result,
+            sys.stdout
         )
 
