@@ -43,8 +43,8 @@ process align_reads {
 	}
 }
 
-// DO not edit below
-wasp_path = '/opt/WASP'
+
+wasp_path = '/opt/WASP' // Path in the container
 
 def get_container(file_name) {
   parent = file(file_name).parent
@@ -61,7 +61,7 @@ def get_container(file_name) {
 process filter_variants {
 	tag "${indiv_id}"
 	container "${params.container}"
-	containerOptions "${get_container(params.genotype_file)}" 
+	containerOptions "${get_container(params.genotype_file)} ${get_container(params.nuclear_chroms)}" 
 	publishDir "${params.outdir}/target_variants"
 
 	input:
@@ -73,23 +73,27 @@ process filter_variants {
 	script:
 	outname = "${indiv_id}.bed.gz"
 	"""
-    echo -e "#chr\tstart\tend\tID\tref\talt\tAAF\tRAF\tGT\tGQ\tDP\tref_count\talt_count" > file.tmp.bed
+    echo -e "#chr\tstart\tend\tID\tref\talt\tAAF\tRAF\tGT\tGQ\tDP\tref_count\talt_count\tindiv_id" > file.tmp.bed
 	bcftools query \
 		-s ${indiv_id} \
 		-i'GT="alt"' \
-		-f"%CHROM\t%POS0\t%POS\t%ID\t%REF\t%ALT\t%INFO/AAF\t%INFO/RAF\t[%GT\t%GQ\t%DP\t%AD{0}\t%AD{1}]\n" \
+		-f"%CHROM\t%POS0\t%POS\t%ID\t%REF\t%ALT\t%INFO/AAF\t%INFO/RAF\t[%GT\t%GQ\t%DP\t%AD{0}\t%AD{1}]\t%SAMPLE\n" \
 		${params.genotype_file} \
-	| awk -v OFS="\\t" \
-		-v min_GQ=${params.min_GQ} -v min_AD=${params.min_AD} -v min_DP=${params.min_DP}\
-		'\$10<min_GQ { next; } \$11<min_DP { next; }\
-			(\$9=="0/1" || \$9=="1/0" || \$9=="0|1" || \$9=="1|0") \
-			&& (\$12<min_AD || \$13<min_AD) { next; } \
-			{ print; }' \
-	| { grep -v chrX | grep -v chrY | grep -v chrM | grep -v _random | grep -v _alt | grep -v chrUn || true; } \
-    | sort-bed - >> file.tmp.bed
-	
-    bgzip -c file.tmp.bed > ${outname}
-	tabix -f -p bed "${outname}"
+        | awk -v OFS="\\t" \
+            -v min_GQ=${params.min_GQ} \
+            -v min_AD=${params.min_AD} \
+            -v min_DP=${params.min_DP} \
+            '\$10<min_GQ { next; } \
+            \$11<min_DP { next; } \
+            (\$9=="0/1" || \$9=="1/0" || \$9=="0|1" || \$9=="1|0") && (\$12<min_AD || \$13<min_AD) { next; } \
+            { print; }' \
+        | awk 'NR==FNR { ok[\$1]=1; next } (\$1 in ok)' \
+            ${params.nuclear_chroms} \
+            - \
+        | sort-bed - >> file.tmp.bed
+        
+        bgzip -c file.tmp.bed > ${outname}
+        tabix -f -p bed "${outname}"
 	"""
 }
 
@@ -107,12 +111,17 @@ process collect_snv_files {
 	script:
 	name = "all_variants_stats.bed.gz"
 	"""
-	echo "${snv_files}" | tr ' ' '\n' | sort -t ":" -k1,1 -u > filelist.txt
-	while read file; do
-		zcat \$file | awk -v OFS='\t' -v name=`basename \$file | awk -F':' '{ print \$1 }'` '{print \$0,name}' >> variants.bed 
-	done < filelist.txt
+    printf '%s\n' ${snv_files} > filelist.txt
+    first=\$(head -n 1 filelist.txt)
+    zcat "\$first" | grep -m1 '^#' > tmp.bed
 
-	sort-bed variants.bed | bgzip -c > ${name}
+    while read file; do
+        zcat "\$file" \
+            | grep -v '^#' \
+    done < filelist.txt \
+        | sort-bed - >> "tmp.bed"
+
+	bgzip -c tmp.bed > ${name}
 	tabix ${name}
 	"""
 }
