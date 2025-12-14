@@ -73,6 +73,7 @@ process filter_variants {
 	script:
 	outname = "${indiv_id}.bed.gz"
 	"""
+    echo -e "#chr\tstart\tend\tID\tref\talt\tAAF\tRAF\tGT\tGQ\tDP\tref_count\talt_count" > file.tmp.bed
 	bcftools query \
 		-s ${indiv_id} \
 		-i'GT="alt"' \
@@ -84,9 +85,10 @@ process filter_variants {
 			(\$9=="0/1" || \$9=="1/0" || \$9=="0|1" || \$9=="1|0") \
 			&& (\$12<min_AD || \$13<min_AD) { next; } \
 			{ print; }' \
-	| sort-bed - \
 	| { grep -v chrX | grep -v chrY | grep -v chrM | grep -v _random | grep -v _alt | grep -v chrUn || true; } \
-	| bgzip -c > ${outname}
+    | sort-bed - >> file.tmp.bed
+	
+    bgzip -c file.tmp.bed > ${outname}
 	tabix -f -p bed "${outname}"
 	"""
 }
